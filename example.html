@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Getting a Loan — Business Process Circuit Map</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0f1117;
+  color: #e2e8f0;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+header {
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  letter-spacing: 0.02em;
+}
+
+.subtitle {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+#controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+#controls button {
+  background: #1e2535;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+#controls button:hover { background: #263047; color: #e2e8f0; border-color: #475569; }
+#controls button.active { background: #0e3a5c; color: #38bdf8; border-color: #0284c7; }
+
+.zoom-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+#zoom { width: 80px; accent-color: #38bdf8; }
+
+#canvas-wrapper {
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 16px;
+}
+
+#canvas {
+  display: inline-block;
+  transform-origin: top left;
+  transition: transform 0.1s;
+}
+
+/* Tooltip */
+#tooltip {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+  background: #1e2535;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 10px 14px;
+  max-width: 280px;
+  font-size: 0.72rem;
+  opacity: 0;
+  transition: opacity 0.12s;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+#tooltip.visible { opacity: 1; }
+
+.tt-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tt-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.tt-label {
+  font-weight: 600;
+  color: #f1f5f9;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.tt-desc {
+  color: #94a3b8;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.tt-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tt-chip {
+  background: #0f1117;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 0.66rem;
+  color: #94a3b8;
+}
+
+/* Legend */
+#legend {
+  margin-top: 24px;
+  border: 1px solid #1e2535;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#legend summary {
+  padding: 10px 16px;
+  background: #1e2535;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  user-select: none;
+  list-style: none;
+}
+#legend summary::before { content: '▶  '; font-size: 0.6rem; }
+#legend[open] summary::before { content: '▼  '; }
+
+.legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0;
+}
+
+.legend-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #1a1f2e;
+  border-right: 1px solid #1a1f2e;
+}
+
+.legend-icon { flex-shrink: 0; }
+
+.legend-text {}
+.legend-term {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.legend-meaning {
+  font-size: 0.67rem;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+/* Component animation states */
+.component { cursor: pointer; }
+.component .sym { transition: filter 0.18s, stroke-width 0.18s; }
+.component.hovered .sym { filter: drop-shadow(0 0 7px currentColor); }
+
+@keyframes pulse-glow {
+  0%   { opacity: 1; }
+  40%  { opacity: 0.4; filter: drop-shadow(0 0 12px currentColor) brightness(1.5); }
+  100% { opacity: 1; }
+}
+.component.pulsing .sym {
+  animation: pulse-glow 0.45s ease-out;
+}
+
+.flow-dot {
+  r: 5;
+  fill: #22d3ee;
+  filter: drop-shadow(0 0 4px #22d3ee);
+  opacity: 0.85;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Getting a Loan — Business Process Circuit Map</h1>
+  <p class="subtitle">Voltage = applicant intent &nbsp;·&nbsp; Current = value flow &nbsp;·&nbsp; Resistance = friction &nbsp;·&nbsp; Impedance = misalignment</p>
+</header>
+
+<div id="controls">
+  <button id="btn-play">⚡ Play process</button>
+  <button id="btn-flow">▶ Current flow</button>
+  <div class="zoom-wrap">
+    <span>Zoom</span>
+    <input type="range" id="zoom" min="0.4" max="1.8" step="0.05" value="0.85">
+    <span id="zoom-label">85%</span>
+  </div>
+</div>
+
+<div id="canvas-wrapper">
+  <div id="canvas"></div>
+</div>
+
+<div id="tooltip"></div>
+
+<details id="legend">
+  <summary>Circuit Legend — Metaphor Vocabulary</summary>
+  <div class="legend-grid" id="legend-grid"></div>
+</details>
+
+<script>
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+const CIRCUIT_DATA = [
+  {
+    id: 'intent',
+    type: 'source',
+    voltage: 3,
+    label: 'Applicant Intent',
+    description: 'Strong business demand. Applicant has urgent need for financing. High voltage = high motivation to push through friction.',
+    annotation: 'V = 3⚡',
+    resistance: null, metric: null, branches: null
+  },
+  {
+    id: 'doc-collection',
+    type: 'resistor',
+    resistance: 'high',
+    label: 'Document Collection',
+    description: 'Applicant must gather payslips, bank statements, ID, tax returns. High UX friction — most drop-off happens here.',
+    annotation: '3–10 days',
+    voltage: null, metric: null, branches: null
+  },
+  {
+    id: 'handoff',
+    type: 'impedance',
+    resistance: 'medium',
+    label: 'Bank ↔ Applicant Handoff',
+    description: 'System misalignment: applicant uses email/PDF, bank uses proprietary portal. Format gaps cause re-work and confusion.',
+    annotation: 'Format mismatch',
+    voltage: null, metric: null, branches: null
+  },
+  {
+    id: 'doc-queue',
+    type: 'capacitor',
+    resistance: null,
+    label: 'Document Queue',
+    description: 'Documents accumulate in review buffer. Process is blocked until complete set is verified. Typical wait: 2–5 business days.',
+    annotation: 'Buffer',
+    voltage: null, metric: null, branches: null
+  },
+  {
+    id: 'credit-check',
+    type: 'resistor',
+    resistance: 'medium',
+    label: 'Credit Bureau Check',
+    description: 'External API call to credit bureau. 1–3 day delay outside bank\'s control. Can return incomplete or disputed data.',
+    annotation: '1–3 days',
+    voltage: null, metric: null, branches: null
+  },
+  {
+    id: 'credit-score',
+    type: 'measurement',
+    resistance: null,
+    label: 'Credit Score',
+    description: 'Outcome probe. Measures the credit score result and whether it clears the threshold.',
+    annotation: 'Probe',
+    metric: { label: 'Min threshold', value: '680', unit: 'score' },
+    voltage: null, branches: null
+  },
+  {
+    id: 'underwriting',
+    type: 'switch',
+    resistance: null,
+    label: 'Underwriting Gate',
+    description: 'Senior underwriter manually reviews all materials. High-effort human decision point. Can approve, reject, or conditionally approve.',
+    annotation: '2–5 days',
+    voltage: null, metric: null, branches: null
+  },
+  {
+    id: 'fork',
+    type: 'branch',
+    resistance: null,
+    label: 'Decision Fork',
+    description: 'Circuit splits. Main path: conditional/full approval. Secondary path: rejection — leads to inspection and case closure.',
+    annotation: null,
+    voltage: null, metric: null,
+    branches: [
+      { label: 'Approved / Conditional', direction: 'main' },
+      { label: 'Rejected', direction: 'secondary' }
+    ]
+  },
+  {
+    id: 'conditions',
+    type: 'resistor',
+    resistance: 'high',
+    label: 'Conditions Fulfillment',
+    description: 'Applicant must provide additional items: co-signer docs, updated payslips, property valuation. More document friction.',
+    annotation: '1–7 days',
+    voltage: null, metric: null, branches: null
+  },
+  {
+    id: 'processing-system',
+    type: 'amplifier',
+    resistance: null,
+    label: 'Loan Processing System',
+    description: 'Automated platform multiplies throughput — runs compliance checks, generates contracts, triggers notifications in parallel.',
+    annotation: 'AI-assisted',
+    voltage: null, metric: null, branches: null
+  },
+  {
+    id: 'compliance',
+    type: 'blackbox',
+    resistance: null,
+    label: 'Legal & Compliance',
+    description: 'Stable, trusted subsystem. Regulatory checks are handled by a hardened module — do not inspect or modify.',
+    annotation: 'Trusted',
+    voltage: null, metric: null, branches: null
+  },
+  {
+    id: 'final-switch',
+    type: 'switch',
+    resistance: null,
+    label: 'Final Sign-off Gate',
+    description: 'Second formal decision gate. Confirms all conditions satisfied. Lower complexity than initial underwriting.',
+    annotation: '1–2 days',
+    voltage: null, metric: null, branches: null
+  },
+  {
+    id: 'outcome-probe',
+    type: 'measurement',
+    resistance: null,
+    label: 'Disbursement Outcome',
+    description: 'Measures the quality of the end result before funds are released.',
+    annotation: 'Probe',
+    metric: { label: 'Approval rate', value: '62', unit: '%' },
+    voltage: null, branches: null
+  },
+  {
+    id: 'disbursement',
+    type: 'ground',
+    resistance: null,
+    label: 'Loan Disbursement',
+    description: 'Process complete. Funds transferred to applicant account. Output achieved.',
+    annotation: 'Output',
+    voltage: null, metric: null, branches: null
+  }
+];
+
+// Rejected branch secondary elements
+const REJECTED_ELEMENTS = [
+  {
+    id: 'rejection-inspect',
+    type: 'whitebox',
+    resistance: null,
+    label: 'Rejection Reasons',
+    description: 'Problem area to inspect. Why did the application fail? Credit score, DTI ratio, missing docs? Surface root cause for improvement.',
+    annotation: 'Inspect',
+    voltage: null, metric: null, branches: null
+  },
+  {
+    id: 'case-closed',
+    type: 'ground',
+    resistance: null,
+    label: 'Case Closed',
+    description: 'Rejection path terminates. Application closed. May re-enter process after conditions improve.',
+    annotation: 'Closed',
+    voltage: null, metric: null, branches: null
+  }
+];
+
+// ─────────────────────────────────────────────
+// LEGEND DATA
+// ─────────────────────────────────────────────
+const LEGEND_ITEMS = [
+  { type: 'source',      term: 'Voltage (V)',           meaning: 'Strength of user intent / business demand (1–3 ⚡)',    color: '#facc15' },
+  { type: 'resistor',    term: 'Resistance (R)',         meaning: 'Friction — UX, process, org, data quality',             color: '#ef4444' },
+  { type: 'impedance',   term: 'Impedance Mismatch (Z)', meaning: 'System misalignment — handoffs, formats, constraints',  color: '#f97316' },
+  { type: 'capacitor',   term: 'Capacitor (C)',          meaning: 'Waiting / buffering — queues, delays, accumulation',    color: '#60a5fa' },
+  { type: 'amplifier',   term: 'Amplifier (A)',          meaning: 'Leverage — automation, AI, tools that scale output',    color: '#2dd4bf' },
+  { type: 'blackbox',    term: 'Black Box',              meaning: 'Stable trusted subsystem — do not inspect',             color: '#94a3b8' },
+  { type: 'whitebox',    term: 'White Box',              meaning: 'Problem area — inspect, improve, or redesign',          color: '#fde68a' },
+  { type: 'measurement', term: 'Measurement (M)',        meaning: 'Outcome probe — time, cost, success rate',              color: '#a78bfa' },
+  { type: 'switch',      term: 'Switch',                 meaning: 'Decision gate / approval point',                        color: '#fbbf24' },
+  { type: 'ground',      term: 'Ground',                 meaning: 'Process completion / output achieved',                  color: '#64748b' },
+];
+
+// ─────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────
+const CW   = 90;   // component width (bounding box)
+const WS   = 36;   // wire segment between components
+const STEP = CW + WS;
+const RAIL_Y      = 100;   // main rail y
+const BRANCH_DROP = 110;   // rejected path drop below rail
+const MARGIN_L    = 50;
+const MARGIN_R    = 50;
+const SVG_H       = RAIL_Y + BRANCH_DROP + 80;
+
+const COLORS = {
+  low:      '#22c55e',
+  medium:   '#eab308',
+  high:     '#ef4444',
+  source:   '#facc15',
+  impedance:'#f97316',
+  capacitor:'#60a5fa',
+  amplifier:'#2dd4bf',
+  blackbox: '#94a3b8',
+  whitebox: '#fde68a',
+  measurement:'#a78bfa',
+  switch:   '#fbbf24',
+  ground:   '#64748b',
+  branch:   '#475569',
+  wire:     '#334155',
+};
+
+function typeColor(el) {
+  if (el.type === 'resistor' || el.type === 'impedance') {
+    return COLORS[el.resistance] || COLORS[el.type];
+  }
+  return COLORS[el.type] || '#94a3b8';
+}
+
+// ─────────────────────────────────────────────
+// SVG HELPERS
+// ─────────────────────────────────────────────
+function svgEl(tag, attrs = {}) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function makePath(d, attrs = {}) {
+  return svgEl('path', { d, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', ...attrs });
+}
+
+function makeText(text, x, y, attrs = {}) {
+  const t = svgEl('text', { x, y, 'text-anchor': 'middle', ...attrs });
+  t.textContent = text;
+  return t;
+}
+
+// ─────────────────────────────────────────────
+// SYMBOL RENDERERS
+// Each returns array of SVG elements, drawn in local coords (center = 0,0, wire at y=0)
+// ─────────────────────────────────────────────
+const RENDERERS = {
+
+  source(el) {
+    const c = COLORS.source;
+    const v = el.voltage || 1;
+    const els = [];
+    // Wire in / out
+    els.push(makePath('M -44,0 L -28,0', { stroke: c, 'stroke-width': 2 }));
+    els.push(makePath('M 32,0 L 44,0',   { stroke: c, 'stroke-width': 2 }));
+    // Battery body + nub
+    els.push(svgEl('rect', { x: -28, y: -14, width: 56, height: 28, rx: 3,
+      fill: '#1a1f2e', stroke: c, 'stroke-width': 2.5 }));
+    els.push(svgEl('rect', { x: 28, y: -6, width: 6, height: 12, rx: 2, fill: c }));
+    // + / - at ends inside body
+    els.push(makeText('+', 18, 5, { fill: c, 'font-size': '11', 'font-weight': 'bold' }));
+    els.push(makeText('−', -18, 5, { fill: c, 'font-size': '13', 'font-weight': 'bold' }));
+    // Bolt count centred in body
+    els.push(makeText('⚡'.repeat(v), 0, 5, { fill: c, 'font-size': v === 3 ? '11' : '13' }));
+    return els;
+  },
+
+  resistor(el) {
+    const c = typeColor(el);
+    return [
+      makePath('M -44,0 L -20,0 L -17,-10 L -11,10 L -5,-10 L 1,10 L 7,-10 L 13,0 L 44,0',
+        { stroke: c, 'stroke-width': 2.5 })
+    ];
+  },
+
+  impedance(el) {
+    const c = COLORS.impedance;
+    // Step-change symbol: wire in → step up → across → step down → across → wire out
+    return [
+      makePath('M -44,0 L -16,0 L -16,-13 L 0,-13 L 0,13 L 16,13 L 16,0 L 44,0',
+        { stroke: c, 'stroke-width': 2.5 })
+    ];
+  },
+
+  capacitor(el) {
+    const c = COLORS.capacitor;
+    return [
+      makePath('M -44,0 L -7,0', { stroke: c, 'stroke-width': 2 }),
+      makePath('M -7,-16 L -7,16', { stroke: c, 'stroke-width': 3 }),
+      makePath('M 7,-16 L 7,16',  { stroke: c, 'stroke-width': 3 }),
+      makePath('M 7,0 L 44,0',    { stroke: c, 'stroke-width': 2 }),
+    ];
+  },
+
+  amplifier(el) {
+    const c = COLORS.amplifier;
+    return [
+      makePath('M -44,0 L -20,0', { stroke: c, 'stroke-width': 2 }),
+      makePath('M 20,0 L 44,0',   { stroke: c, 'stroke-width': 2 }),
+      makePath('M -20,-18 L -20,18 L 20,0 Z', { stroke: c, 'stroke-width': 2.5, fill: c + '22' }),
+      makeText('▲', 0, 5, { fill: c, 'font-size': '10' }),
+    ];
+  },
+
+  blackbox(el) {
+    const c = COLORS.blackbox;
+    return [
+      makePath('M -44,0 L -22,0', { stroke: c, 'stroke-width': 2 }),
+      makePath('M 22,0 L 44,0',   { stroke: c, 'stroke-width': 2 }),
+      svgEl('rect', { x: -22, y: -14, width: 44, height: 28, rx: 3,
+        fill: '#1a1f2e', stroke: c, 'stroke-width': 2.5 }),
+      makeText('■', 0, 5, { fill: c, 'font-size': '13' }),
+    ];
+  },
+
+  whitebox(el) {
+    const c = COLORS.whitebox;
+    return [
+      makePath('M -44,0 L -22,0', { stroke: c, 'stroke-width': 2 }),
+      makePath('M 22,0 L 44,0',   { stroke: c, 'stroke-width': 2 }),
+      svgEl('rect', { x: -22, y: -14, width: 44, height: 28, rx: 3,
+        fill: c + '18', stroke: c, 'stroke-width': 2.5, 'stroke-dasharray': '5,3' }),
+      makeText('□', 0, 5, { fill: c, 'font-size': '13' }),
+    ];
+  },
+
+  measurement(el) {
+    const c = COLORS.measurement;
+    const els = [];
+    els.push(makePath('M -44,0 L -16,0', { stroke: c, 'stroke-width': 2 }));
+    els.push(makePath('M 16,0 L 44,0',   { stroke: c, 'stroke-width': 2 }));
+    els.push(svgEl('circle', { cx: 0, cy: 0, r: 16, fill: '#1a1f2e', stroke: c, 'stroke-width': 2.5 }));
+    // Needle
+    els.push(makePath('M 0,0 L -8,-10', { stroke: c, 'stroke-width': 2, 'stroke-linecap': 'round' }));
+    // M label
+    els.push(makeText('M', 0, 5, { fill: c, 'font-size': '9', 'font-weight': 'bold' }));
+    return els;
+  },
+
+  switch(el) {
+    const c = COLORS.switch;
+    return [
+      makePath('M -44,0 L -16,0', { stroke: c, 'stroke-width': 2 }),
+      makePath('M -16,0 L 10,-16', { stroke: c, 'stroke-width': 2.5, 'stroke-linecap': 'round' }),
+      svgEl('circle', { cx: -16, cy: 0, r: 3, fill: c }),
+      svgEl('circle', { cx: 16,  cy: 0, r: 3, fill: c }),
+      makePath('M 16,0 L 44,0', { stroke: c, 'stroke-width': 2 }),
+    ];
+  },
+
+  branch(el) {
+    // Just a node dot — the actual fork is drawn by the layout engine
+    const c = COLORS.branch;
+    return [
+      svgEl('circle', { cx: 0, cy: 0, r: 5, fill: c, stroke: COLORS.wire, 'stroke-width': 1 }),
+    ];
+  },
+
+  ground(el) {
+    const c = COLORS.ground;
+    return [
+      makePath('M -44,0 L 0,0', { stroke: c, 'stroke-width': 2 }),
+      makePath('M -16,8 L 16,8',  { stroke: c, 'stroke-width': 3 }),
+      makePath('M -10,16 L 10,16', { stroke: c, 'stroke-width': 2.5 }),
+      makePath('M -5,24 L 5,24',  { stroke: c, 'stroke-width': 2 }),
+    ];
+  },
+};
+
+// ─────────────────────────────────────────────
+// LAYOUT
+// ─────────────────────────────────────────────
+function computeLayout(data) {
+  return data.map((el, i) => ({
+    el,
+    cx: MARGIN_L + i * STEP + CW / 2,
+    cy: RAIL_Y,
+  }));
+}
+
+// ─────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────
+function render() {
+  const layout = computeLayout(CIRCUIT_DATA);
+  const svgW = MARGIN_L + CIRCUIT_DATA.length * STEP + MARGIN_R;
+
+  const svg = svgEl('svg', {
+    id: 'circuit-svg',
+    width: svgW,
+    height: SVG_H,
+    style: 'display:block;'
+  });
+
+  // ── Background grid ──
+  const defs = svgEl('defs');
+  const grid = svgEl('pattern', { id: 'grid', width: 20, height: 20, patternUnits: 'userSpaceOnUse' });
+  grid.appendChild(makePath('M 20,0 L 0,0 0,20', { stroke: '#1a1f2e', 'stroke-width': 0.5 }));
+  defs.appendChild(grid);
+  svg.appendChild(defs);
+  svg.appendChild(svgEl('rect', { width: svgW, height: SVG_H, fill: 'url(#grid)' }));
+
+  // ── Main rail (background wire) ──
+  const railX1 = MARGIN_L;
+  const railX2 = MARGIN_L + CIRCUIT_DATA.length * STEP;
+  const railLine = svgEl('line', {
+    id: 'main-rail',
+    x1: railX1, y1: RAIL_Y, x2: railX2, y2: RAIL_Y,
+    stroke: COLORS.wire, 'stroke-width': 2
+  });
+  svg.appendChild(railLine);
+
+  // ── Find branch index ──
+  const branchIdx = CIRCUIT_DATA.findIndex(e => e.type === 'branch');
+  const branchCx  = branchIdx >= 0 ? layout[branchIdx].cx : null;
+
+  // ── Rejection path (drawn before components so it's behind) ──
+  if (branchIdx >= 0) {
+    const bx = branchCx;
+    const by = RAIL_Y;
+    const dropY = RAIL_Y + BRANCH_DROP;
+
+    // Draw rejected sub-elements
+    const rejLayout = REJECTED_ELEMENTS.map((el, i) => ({
+      el,
+      cx: bx + (i + 1) * STEP,
+      cy: dropY,
+    }));
+
+    // Wire: branch down then right
+    const lastRejCx = rejLayout[rejLayout.length - 1].cx;
+    const rejPath = `M ${bx},${by} C ${bx},${dropY} ${bx + 30},${dropY} ${bx + STEP / 2},${dropY} L ${lastRejCx + CW / 2},${dropY}`;
+    svg.appendChild(makePath(rejPath, { stroke: '#ef4444', 'stroke-width': 1.8, 'stroke-dasharray': '6,3' }));
+
+    // Rejected label
+    const rl = makeText('⛔ Rejected', bx + STEP * 0.7, dropY - 14, {
+      fill: '#ef4444', 'font-size': '10', 'font-weight': '600'
+    });
+    svg.appendChild(rl);
+
+    // Render rejected components
+    for (const { el, cx, cy } of rejLayout) {
+      svg.appendChild(renderComponent(el, cx, cy, true));
+    }
+  }
+
+  // ── Main components ──
+  for (const { el, cx, cy } of layout) {
+    svg.appendChild(renderComponent(el, cx, cy, false));
+  }
+
+  // ── Flow animation dots ──
+  const animGroup = svgEl('g', { id: 'flow-anim', visibility: 'hidden' });
+  // Create a path that the dots will follow (same as rail)
+  const railPathId = 'flow-rail-path';
+  const railPath = svgEl('path', {
+    id: railPathId,
+    d: `M ${railX1},${RAIL_Y} L ${railX2},${RAIL_Y}`,
+    fill: 'none', stroke: 'none'
+  });
+  svg.appendChild(railPath);
+
+  const dotCount = 4;
+  const flowDur = 8;
+  for (let i = 0; i < dotCount; i++) {
+    const dot = svgEl('circle', { r: 5, fill: '#22d3ee',
+      style: `filter: drop-shadow(0 0 4px #22d3ee); opacity: 0.85;` });
+    const anim = svgEl('animateMotion', {
+      dur: `${flowDur}s`,
+      repeatCount: 'indefinite',
+      begin: `${(flowDur / dotCount) * i}s`
+    });
+    const mpath = svgEl('mpath', {});
+    mpath.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#${railPathId}`);
+    anim.appendChild(mpath);
+    dot.appendChild(anim);
+    animGroup.appendChild(dot);
+  }
+  svg.appendChild(animGroup);
+
+  document.getElementById('canvas').appendChild(svg);
+
+  buildLegend();
+  wireControls(svg, layout);
+  wireTooltips(svg);
+}
+
+// ─────────────────────────────────────────────
+// RENDER COMPONENT
+// ─────────────────────────────────────────────
+function renderComponent(el, cx, cy, isSecondary) {
+  const g = svgEl('g', {
+    class: 'component',
+    'data-id': el.id,
+    transform: `translate(${cx}, ${cy})`
+  });
+
+  // Symbol group (for animation targeting)
+  const symG = svgEl('g', { class: 'sym' });
+  const renderer = RENDERERS[el.type];
+  if (renderer) {
+    for (const shape of renderer(el)) symG.appendChild(shape);
+  }
+  g.appendChild(symG);
+
+  // Label below
+  const labelEl = makeText(el.label, 0, 46, {
+    fill: '#94a3b8', 'font-size': '9.5',
+    style: 'font-family: inherit; font-weight: 500;'
+  });
+  // Wrap long labels
+  if (el.label.length > 16) {
+    const words = el.label.split(' ');
+    const mid = Math.ceil(words.length / 2);
+    const line1 = words.slice(0, mid).join(' ');
+    const line2 = words.slice(mid).join(' ');
+    labelEl.textContent = '';
+    const t1 = svgEl('tspan', { x: 0, dy: 0 }); t1.textContent = line1;
+    const t2 = svgEl('tspan', { x: 0, dy: '1.2em' }); t2.textContent = line2;
+    labelEl.appendChild(t1);
+    labelEl.appendChild(t2);
+  }
+  g.appendChild(labelEl);
+
+  // Annotation above
+  if (el.annotation) {
+    const ann = svgEl('g', {});
+    ann.appendChild(svgEl('rect', {
+      x: -el.annotation.length * 3.2, y: -44,
+      width: el.annotation.length * 6.4, height: 14,
+      rx: 3, fill: '#1e2535', stroke: '#334155', 'stroke-width': 1
+    }));
+    ann.appendChild(makeText(el.annotation, 0, -33, {
+      fill: '#64748b', 'font-size': '8.5'
+    }));
+    g.appendChild(ann);
+  }
+
+  // Hit target
+  g.appendChild(svgEl('rect', {
+    x: -CW / 2, y: -30, width: CW, height: 80,
+    fill: 'transparent', class: 'hit'
+  }));
+
+  return g;
+}
+
+// ─────────────────────────────────────────────
+// TOOLTIPS
+// ─────────────────────────────────────────────
+const ALL_DATA = [...CIRCUIT_DATA, ...REJECTED_ELEMENTS];
+
+function wireTooltips(svg) {
+  const tip = document.getElementById('tooltip');
+
+  svg.addEventListener('mousemove', e => {
+    const comp = e.target.closest('.component');
+    if (!comp) { tip.classList.remove('visible'); return; }
+    const id = comp.dataset.id;
+    const el = ALL_DATA.find(d => d.id === id);
+    if (!el) return;
+    showTooltip(el, e.clientX, e.clientY);
+    document.querySelectorAll('.component.hovered').forEach(c => c.classList.remove('hovered'));
+    comp.classList.add('hovered');
+  });
+
+  svg.addEventListener('mouseleave', () => {
+    tip.classList.remove('visible');
+    document.querySelectorAll('.component.hovered').forEach(c => c.classList.remove('hovered'));
+  });
+}
+
+const TYPE_LABELS = {
+  source: 'Voltage Source', resistor: 'Resistor', impedance: 'Impedance',
+  capacitor: 'Capacitor', amplifier: 'Amplifier', blackbox: 'Black Box',
+  whitebox: 'White Box', measurement: 'Measurement', switch: 'Switch',
+  branch: 'Branch', ground: 'Ground'
+};
+
+function showTooltip(el, mx, my) {
+  const tip = document.getElementById('tooltip');
+  const c = typeColor(el);
+
+  const badge = `<span class="tt-badge" style="background:${c}22;color:${c};border:1px solid ${c}44">${TYPE_LABELS[el.type] || el.type}</span>`;
+  const label = `<span class="tt-label">${el.label}</span>`;
+  const desc  = `<div class="tt-desc">${el.description}</div>`;
+
+  const chips = [];
+  if (el.voltage)    chips.push(`<span class="tt-chip">⚡ Voltage: ${'⚡'.repeat(el.voltage)}</span>`);
+  if (el.resistance) chips.push(`<span class="tt-chip" style="color:${COLORS[el.resistance]}">Resistance: ${el.resistance.toUpperCase()}</span>`);
+  if (el.annotation) chips.push(`<span class="tt-chip">${el.annotation}</span>`);
+  if (el.metric)     chips.push(`<span class="tt-chip" style="color:${COLORS.measurement}">${el.metric.label}: ${el.metric.value}${el.metric.unit}</span>`);
+
+  tip.innerHTML = `
+    <div class="tt-header">${badge}${label}</div>
+    ${desc}
+    <div class="tt-meta">${chips.join('')}</div>
+  `;
+
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let tx = mx + 18, ty = my - 10;
+  const tw = 280, th = 130;
+  if (tx + tw > vw) tx = mx - tw - 8;
+  if (ty + th > vh) ty = my - th;
+  tip.style.left = tx + 'px';
+  tip.style.top  = ty + 'px';
+  tip.classList.add('visible');
+}
+
+// ─────────────────────────────────────────────
+// CONTROLS
+// ─────────────────────────────────────────────
+function wireControls(svg, layout) {
+  // Play process
+  document.getElementById('btn-play').addEventListener('click', () => {
+    const allIds = [
+      ...CIRCUIT_DATA.map(e => e.id),
+    ];
+    allIds.forEach((id, i) => {
+      setTimeout(() => {
+        const g = svg.querySelector(`[data-id="${id}"]`);
+        if (!g) return;
+        g.classList.add('pulsing');
+        setTimeout(() => g.classList.remove('pulsing'), 450);
+      }, i * 420);
+    });
+  });
+
+  // Current flow toggle
+  const flowBtn = document.getElementById('btn-flow');
+  const animGroup = svg.getElementById ? svg.getElementById('flow-anim') : svg.querySelector('#flow-anim');
+  let flowOn = false;
+  flowBtn.addEventListener('click', () => {
+    flowOn = !flowOn;
+    const ag = document.getElementById('flow-anim') || svg.querySelector('#flow-anim');
+    if (ag) ag.setAttribute('visibility', flowOn ? 'visible' : 'hidden');
+    flowBtn.textContent = flowOn ? '⏸ Current flow' : '▶ Current flow';
+    flowBtn.classList.toggle('active', flowOn);
+  });
+
+  // Zoom
+  const zoomInput = document.getElementById('zoom');
+  const zoomLabel = document.getElementById('zoom-label');
+  const canvas    = document.getElementById('canvas');
+  zoomInput.addEventListener('input', () => {
+    const v = parseFloat(zoomInput.value);
+    canvas.style.transform = `scale(${v})`;
+    zoomLabel.textContent = Math.round(v * 100) + '%';
+  });
+  // Init zoom
+  canvas.style.transform = `scale(${zoomInput.value})`;
+
+  // Set initial SVG zoom
+  canvas.style.transform = `scale(${parseFloat(zoomInput.value)})`;
+}
+
+// ─────────────────────────────────────────────
+// LEGEND
+// ─────────────────────────────────────────────
+function buildLegend() {
+  const grid = document.getElementById('legend-grid');
+
+  for (const item of LEGEND_ITEMS) {
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+
+    // Mini SVG icon
+    const iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    iconSvg.setAttribute('width', 54);
+    iconSvg.setAttribute('height', 28);
+    iconSvg.setAttribute('viewBox', '-27 -14 54 28');
+    iconSvg.style.flexShrink = '0';
+    iconSvg.classList.add('legend-icon');
+
+    // Wire stubs
+    const stub = makePath('M -27,0 L 27,0', { stroke: COLORS.wire, 'stroke-width': 1.5 });
+    iconSvg.appendChild(stub);
+
+    // Mini symbol (scaled)
+    const mockEl = { type: item.type, resistance: 'high', voltage: 2, annotation: null, metric: null };
+    const renderer = RENDERERS[item.type];
+    if (renderer) {
+      const sg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      sg.setAttribute('transform', 'scale(0.55)');
+      for (const shape of renderer(mockEl)) sg.appendChild(shape);
+      iconSvg.appendChild(sg);
+    }
+
+    const textDiv = document.createElement('div');
+    textDiv.className = 'legend-text';
+    textDiv.innerHTML = `
+      <div class="legend-term" style="color:${item.color}">${item.term}</div>
+      <div class="legend-meaning">${item.meaning}</div>
+    `;
+
+    row.appendChild(iconSvg);
+    row.appendChild(textDiv);
+    grid.appendChild(row);
+  }
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', render);
+</script>
+</body>
+</html>

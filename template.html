@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Business Process Circuit Mapper — Template</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0f1117;
+  color: #e2e8f0;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+header { margin-bottom: 20px; }
+
+h1 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.subtitle {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* Instructions panel */
+#instructions {
+  background: #111827;
+  border: 1px solid #1e3a5f;
+  border-left: 3px solid #3b82f6;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: #94a3b8;
+}
+
+#instructions h2 {
+  font-size: 0.85rem;
+  color: #60a5fa;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+#instructions h3 {
+  font-size: 0.75rem;
+  color: #93c5fd;
+  margin: 12px 0 6px;
+  font-weight: 600;
+}
+
+#instructions code {
+  background: #1e2535;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: #e2e8f0;
+  font-size: 0.72rem;
+}
+
+#instructions .field-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+
+#instructions .field-table th {
+  text-align: left;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.68rem;
+  padding: 4px 10px;
+  border-bottom: 1px solid #1e2535;
+}
+
+#instructions .field-table td {
+  padding: 4px 10px;
+  border-bottom: 1px solid #1a1f2e;
+  font-size: 0.70rem;
+  vertical-align: top;
+}
+
+#instructions .field-table td:first-child { color: #38bdf8; }
+#instructions .field-table td:nth-child(2) { color: #e2e8f0; }
+
+.type-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.type-pill {
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-size: 0.67rem;
+  font-weight: 600;
+  border: 1px solid;
+}
+
+#controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+#controls button {
+  background: #1e2535;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+#controls button:hover { background: #263047; color: #e2e8f0; border-color: #475569; }
+#controls button.active { background: #0e3a5c; color: #38bdf8; border-color: #0284c7; }
+
+.zoom-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+#zoom { width: 80px; accent-color: #38bdf8; }
+
+#canvas-wrapper {
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 16px;
+}
+#canvas {
+  display: inline-block;
+  transform-origin: top left;
+  transition: transform 0.1s;
+}
+
+#tooltip {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+  background: #1e2535;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 10px 14px;
+  max-width: 280px;
+  font-size: 0.72rem;
+  opacity: 0;
+  transition: opacity 0.12s;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+#tooltip.visible { opacity: 1; }
+.tt-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.tt-badge {
+  font-size: 0.62rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+  letter-spacing: 0.05em; text-transform: uppercase; flex-shrink: 0;
+}
+.tt-label { font-weight: 600; color: #f1f5f9; font-size: 0.78rem; line-height: 1.2; }
+.tt-desc { color: #94a3b8; line-height: 1.5; margin-bottom: 6px; }
+.tt-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.tt-chip {
+  background: #0f1117; border: 1px solid #334155; border-radius: 4px;
+  padding: 2px 7px; font-size: 0.66rem; color: #94a3b8;
+}
+
+#legend {
+  margin-top: 24px;
+  border: 1px solid #1e2535;
+  border-radius: 8px;
+  overflow: hidden;
+}
+#legend summary {
+  padding: 10px 16px;
+  background: #1e2535;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  user-select: none;
+  list-style: none;
+}
+#legend summary::before { content: '▶  '; font-size: 0.6rem; }
+#legend[open] summary::before { content: '▼  '; }
+
+.legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.legend-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #1a1f2e;
+  border-right: 1px solid #1a1f2e;
+}
+.legend-term { font-size: 0.72rem; font-weight: 600; color: #e2e8f0; }
+.legend-meaning { font-size: 0.67rem; color: #64748b; margin-top: 1px; }
+
+.component { cursor: pointer; }
+.component .sym { transition: filter 0.18s; }
+.component.hovered .sym { filter: drop-shadow(0 0 7px currentColor); }
+
+@keyframes pulse-glow {
+  0%   { opacity: 1; }
+  40%  { opacity: 0.4; filter: drop-shadow(0 0 12px currentColor) brightness(1.5); }
+  100% { opacity: 1; }
+}
+.component.pulsing .sym { animation: pulse-glow 0.45s ease-out; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Business Process Circuit Mapper — Template</h1>
+  <p class="subtitle">Map any process as an electrical circuit. Edit <code>CIRCUIT_DATA</code> in the &lt;script&gt; to describe your process.</p>
+</header>
+
+<!-- ═══════════════════════════════════════════
+     INSTRUCTIONS PANEL
+     How to use and customize this template
+     ═══════════════════════════════════════════ -->
+<div id="instructions">
+  <h2>How to use this template</h2>
+  <p>Open this file in a text editor. Find the <code>CIRCUIT_DATA</code> array in the <code>&lt;script&gt;</code> block and replace the placeholder entries with your own process steps. Each step maps to one of the component types below.</p>
+
+  <h3>Component types — what to use when</h3>
+  <div class="type-list">
+    <span class="type-pill" style="color:#facc15;border-color:#facc1544;background:#facc1511">source</span>
+    <span class="type-pill" style="color:#ef4444;border-color:#ef444444;background:#ef444411">resistor</span>
+    <span class="type-pill" style="color:#f97316;border-color:#f9731644;background:#f9731611">impedance</span>
+    <span class="type-pill" style="color:#60a5fa;border-color:#60a5fa44;background:#60a5fa11">capacitor</span>
+    <span class="type-pill" style="color:#2dd4bf;border-color:#2dd4bf44;background:#2dd4bf11">amplifier</span>
+    <span class="type-pill" style="color:#94a3b8;border-color:#94a3b844;background:#94a3b811">blackbox</span>
+    <span class="type-pill" style="color:#fde68a;border-color:#fde68a44;background:#fde68a11">whitebox</span>
+    <span class="type-pill" style="color:#a78bfa;border-color:#a78bfa44;background:#a78bfa11">measurement</span>
+    <span class="type-pill" style="color:#fbbf24;border-color:#fbbf2444;background:#fbbf2411">switch</span>
+    <span class="type-pill" style="color:#475569;border-color:#47556944;background:#47556911">branch</span>
+    <span class="type-pill" style="color:#64748b;border-color:#64748b44;background:#64748b11">ground</span>
+  </div>
+
+  <h3>Data fields</h3>
+  <table class="field-table">
+    <tr><th>Field</th><th>Type</th><th>Required?</th><th>Description</th></tr>
+    <tr><td>id</td><td>string</td><td>Yes</td><td>Unique identifier. No spaces. E.g. <code>'credit-check'</code></td></tr>
+    <tr><td>type</td><td>string</td><td>Yes</td><td>One of the component types above</td></tr>
+    <tr><td>label</td><td>string</td><td>Yes</td><td>Short name shown below the component (keep under ~18 chars)</td></tr>
+    <tr><td>description</td><td>string</td><td>Yes</td><td>Full explanation shown in tooltip on hover</td></tr>
+    <tr><td>voltage</td><td>1 | 2 | 3</td><td>source only</td><td>Strength of intent/demand. 1=low, 3=high</td></tr>
+    <tr><td>resistance</td><td>'low' | 'medium' | 'high'</td><td>resistor / impedance</td><td>Drives color coding. Green / Yellow / Red</td></tr>
+    <tr><td>annotation</td><td>string | null</td><td>No</td><td>Small badge above component. E.g. <code>'~3 days'</code>, <code>'AI-assisted'</code></td></tr>
+    <tr><td>metric</td><td>object | null</td><td>measurement only</td><td><code>{ label: 'Success rate', value: '72', unit: '%' }</code></td></tr>
+    <tr><td>branches</td><td>array | null</td><td>branch only</td><td><code>[{ label: 'Approved', direction: 'main' }, { label: 'Rejected', direction: 'secondary' }]</code></td></tr>
+  </table>
+
+  <h3>Rejected / secondary path</h3>
+  <p>Edit the <code>REJECTED_ELEMENTS</code> array (right below <code>CIRCUIT_DATA</code>) to define what happens on the rejected/secondary branch. This array follows the same format. Typically: a <code>whitebox</code> (inspect why it failed) → <code>ground</code> (process ends).</p>
+
+  <h3>Tips</h3>
+  <p>• Put <code>source</code> first and <code>ground</code> last.<br>
+  • Use one <code>branch</code> element where your process has a key decision fork.<br>
+  • <code>blackbox</code> = stable systems you trust (don't change). <code>whitebox</code> = areas to investigate.<br>
+  • <code>measurement</code> = KPI checkpoints — place them after key steps.<br>
+  • Save the file and refresh your browser to see changes.</p>
+</div>
+
+<div id="controls">
+  <button id="btn-play">⚡ Play process</button>
+  <button id="btn-flow">▶ Current flow</button>
+  <div class="zoom-wrap">
+    <span>Zoom</span>
+    <input type="range" id="zoom" min="0.4" max="1.8" step="0.05" value="0.85">
+    <span id="zoom-label">85%</span>
+  </div>
+</div>
+
+<div id="canvas-wrapper">
+  <div id="canvas"></div>
+</div>
+
+<div id="tooltip"></div>
+
+<details id="legend" open>
+  <summary>Circuit Legend — Metaphor Vocabulary</summary>
+  <div class="legend-grid" id="legend-grid"></div>
+</details>
+
+<script>
+// ─────────────────────────────────────────────
+// YOUR PROCESS DATA — edit this section
+// Replace each placeholder entry with a real step in your process.
+// ─────────────────────────────────────────────
+
+const CIRCUIT_DATA = [
+  // 1. START — what drives this process? (source = voltage / intent)
+  {
+    id: 'start',
+    type: 'source',
+    voltage: 2,               // 1=low demand, 2=medium, 3=high urgency
+    label: '[Process Start]',
+    description: 'Describe the driving force behind this process. Who initiates it and why?',
+    annotation: 'Start',
+    resistance: null, metric: null, branches: null
+  },
+
+  // 2. FRICTION STEP — something that slows progress (resistor = resistance)
+  {
+    id: 'friction-1',
+    type: 'resistor',
+    resistance: 'medium',     // 'low' | 'medium' | 'high'
+    label: '[Friction Step]',
+    description: 'Describe a step that causes friction, delay, or effort. What makes it hard?',
+    annotation: '~X days',
+    voltage: null, metric: null, branches: null
+  },
+
+  // 3. SYSTEM MISMATCH — handoff or format gap (impedance)
+  {
+    id: 'mismatch-1',
+    type: 'impedance',
+    resistance: 'medium',
+    label: '[System Mismatch]',
+    description: 'Describe a handoff where systems don\'t align — different tools, formats, teams, or expectations.',
+    annotation: 'Handoff',
+    voltage: null, metric: null, branches: null
+  },
+
+  // 4. WAITING / BUFFER — things pile up here (capacitor)
+  {
+    id: 'buffer-1',
+    type: 'capacitor',
+    resistance: null,
+    label: '[Queue / Buffer]',
+    description: 'Describe a waiting state where items accumulate before the next step can begin.',
+    annotation: 'Buffer',
+    voltage: null, metric: null, branches: null
+  },
+
+  // 5. MEASUREMENT — check an outcome here (measurement)
+  {
+    id: 'measure-1',
+    type: 'measurement',
+    resistance: null,
+    label: '[Metric]',
+    description: 'Describe what outcome you are measuring at this point in the process.',
+    annotation: 'Probe',
+    metric: { label: '[KPI Name]', value: '??', unit: '%' },
+    voltage: null, branches: null
+  },
+
+  // 6. DECISION GATE — approve, reject, or route (switch)
+  {
+    id: 'gate-1',
+    type: 'switch',
+    resistance: null,
+    label: '[Decision Gate]',
+    description: 'Describe the decision that happens here. Who decides? What criteria are used?',
+    annotation: '~X days',
+    voltage: null, metric: null, branches: null
+  },
+
+  // 7. FORK — process splits into two paths (branch)
+  {
+    id: 'fork-1',
+    type: 'branch',
+    resistance: null,
+    label: '[Fork]',
+    description: 'Process splits here. Describe the two outcomes.',
+    annotation: null,
+    voltage: null, metric: null,
+    branches: [
+      { label: '[Success path]', direction: 'main' },
+      { label: '[Failure path]', direction: 'secondary' }
+    ]
+  },
+
+  // 8. AMPLIFIER — automation or AI speeds this up (amplifier)
+  {
+    id: 'amplifier-1',
+    type: 'amplifier',
+    resistance: null,
+    label: '[Automation / AI]',
+    description: 'Describe a tool, automation, or AI that amplifies throughput here.',
+    annotation: 'Automated',
+    voltage: null, metric: null, branches: null
+  },
+
+  // 9. TRUSTED SUBSYSTEM — stable, don't touch (blackbox)
+  {
+    id: 'blackbox-1',
+    type: 'blackbox',
+    resistance: null,
+    label: '[Trusted System]',
+    description: 'A stable, reliable subsystem. You don\'t need to inspect or change it — just pass through.',
+    annotation: 'Trusted',
+    voltage: null, metric: null, branches: null
+  },
+
+  // 10. END — process completes (ground)
+  {
+    id: 'end',
+    type: 'ground',
+    resistance: null,
+    label: '[Process End]',
+    description: 'Describe the final output or completion state of this process.',
+    annotation: 'Output',
+    voltage: null, metric: null, branches: null
+  },
+];
+
+// Secondary (rejected/failure) path elements
+// These appear on the lower branch after a 'branch' component.
+const REJECTED_ELEMENTS = [
+  {
+    id: 'inspect-1',
+    type: 'whitebox',
+    resistance: null,
+    label: '[Inspect Failure]',
+    description: 'This is a problem area. What went wrong? What can be improved or fixed?',
+    annotation: 'Inspect',
+    voltage: null, metric: null, branches: null
+  },
+  {
+    id: 'end-secondary',
+    type: 'ground',
+    resistance: null,
+    label: '[Closed]',
+    description: 'Secondary path ends here.',
+    annotation: 'Closed',
+    voltage: null, metric: null, branches: null
+  }
+];
+
+// ─────────────────────────────────────────────
+// LEGEND DATA
+// ─────────────────────────────────────────────
+const LEGEND_ITEMS = [
+  { type: 'source',      term: 'Voltage (V)',            meaning: 'Strength of user intent / business demand (1–3 ⚡)',   color: '#facc15' },
+  { type: 'resistor',    term: 'Resistance (R)',          meaning: 'Friction — UX, process, org, data quality',            color: '#ef4444' },
+  { type: 'impedance',   term: 'Impedance Mismatch (Z)', meaning: 'System misalignment — handoffs, formats, constraints', color: '#f97316' },
+  { type: 'capacitor',   term: 'Capacitor (C)',           meaning: 'Waiting / buffering — queues, delays, accumulation',  color: '#60a5fa' },
+  { type: 'amplifier',   term: 'Amplifier (A)',           meaning: 'Leverage — automation, AI, tools that scale output',  color: '#2dd4bf' },
+  { type: 'blackbox',    term: 'Black Box',               meaning: 'Stable trusted subsystem — do not inspect',           color: '#94a3b8' },
+  { type: 'whitebox',    term: 'White Box',               meaning: 'Problem area — inspect, improve, or redesign',        color: '#fde68a' },
+  { type: 'measurement', term: 'Measurement (M)',         meaning: 'Outcome probe — time, cost, success rate',            color: '#a78bfa' },
+  { type: 'switch',      term: 'Switch',                  meaning: 'Decision gate / approval point',                      color: '#fbbf24' },
+  { type: 'ground',      term: 'Ground',                  meaning: 'Process completion / output achieved',                color: '#64748b' },
+];
+
+// ─────────────────────────────────────────────
+// CONSTANTS & COLORS
+// (Do not edit below this line unless you know SVG/JS)
+// ─────────────────────────────────────────────
+const CW   = 90;
+const WS   = 36;
+const STEP = CW + WS;
+const RAIL_Y      = 100;
+const BRANCH_DROP = 110;
+const MARGIN_L    = 50;
+const MARGIN_R    = 50;
+const SVG_H       = RAIL_Y + BRANCH_DROP + 80;
+
+const COLORS = {
+  low: '#22c55e', medium: '#eab308', high: '#ef4444',
+  source: '#facc15', impedance: '#f97316', capacitor: '#60a5fa',
+  amplifier: '#2dd4bf', blackbox: '#94a3b8', whitebox: '#fde68a',
+  measurement: '#a78bfa', switch: '#fbbf24', ground: '#64748b',
+  branch: '#475569', wire: '#334155',
+};
+
+function typeColor(el) {
+  if (el.type === 'resistor' || el.type === 'impedance') return COLORS[el.resistance] || COLORS[el.type];
+  return COLORS[el.type] || '#94a3b8';
+}
+
+function svgEl(tag, attrs = {}) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+function makePath(d, attrs = {}) {
+  return svgEl('path', { d, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', ...attrs });
+}
+function makeText(text, x, y, attrs = {}) {
+  const t = svgEl('text', { x, y, 'text-anchor': 'middle', ...attrs });
+  t.textContent = text;
+  return t;
+}
+
+const RENDERERS = {
+  source(el) {
+    const c = COLORS.source;
+    const v = el.voltage || 1;
+    return [
+      makePath('M -44,0 L -28,0', { stroke: c, 'stroke-width': 2 }),
+      makePath('M 32,0 L 44,0',   { stroke: c, 'stroke-width': 2 }),
+      svgEl('rect', { x: -28, y: -14, width: 56, height: 28, rx: 3,
+        fill: '#1a1f2e', stroke: c, 'stroke-width': 2.5 }),
+      svgEl('rect', { x: 28, y: -6, width: 6, height: 12, rx: 2, fill: c }),
+      makeText('+', 18, 5, { fill: c, 'font-size': '11', 'font-weight': 'bold' }),
+      makeText('−', -18, 5, { fill: c, 'font-size': '13', 'font-weight': 'bold' }),
+      makeText('⚡'.repeat(v), 0, 5, { fill: c, 'font-size': v === 3 ? '11' : '13' }),
+    ];
+  },
+  resistor(el) {
+    const c = typeColor(el);
+    return [makePath('M -44,0 L -20,0 L -17,-10 L -11,10 L -5,-10 L 1,10 L 7,-10 L 13,0 L 44,0',
+      { stroke: c, 'stroke-width': 2.5 })];
+  },
+  impedance(el) {
+    const c = COLORS.impedance;
+    // Step-change symbol: wire in → step up → across → step down → across → wire out
+    return [
+      makePath('M -44,0 L -16,0 L -16,-13 L 0,-13 L 0,13 L 16,13 L 16,0 L 44,0',
+        { stroke: c, 'stroke-width': 2.5 })
+    ];
+  },
+  capacitor(el) {
+    const c = COLORS.capacitor;
+    return [
+      makePath('M -44,0 L -7,0',  { stroke: c, 'stroke-width': 2 }),
+      makePath('M -7,-16 L -7,16', { stroke: c, 'stroke-width': 3 }),
+      makePath('M 7,-16 L 7,16',  { stroke: c, 'stroke-width': 3 }),
+      makePath('M 7,0 L 44,0',    { stroke: c, 'stroke-width': 2 }),
+    ];
+  },
+  amplifier(el) {
+    const c = COLORS.amplifier;
+    return [
+      makePath('M -44,0 L -20,0', { stroke: c, 'stroke-width': 2 }),
+      makePath('M 20,0 L 44,0',   { stroke: c, 'stroke-width': 2 }),
+      makePath('M -20,-18 L -20,18 L 20,0 Z', { stroke: c, 'stroke-width': 2.5, fill: c + '22' }),
+      makeText('▲', 0, 5, { fill: c, 'font-size': '10' }),
+    ];
+  },
+  blackbox(el) {
+    const c = COLORS.blackbox;
+    return [
+      makePath('M -44,0 L -22,0', { stroke: c, 'stroke-width': 2 }),
+      makePath('M 22,0 L 44,0',   { stroke: c, 'stroke-width': 2 }),
+      svgEl('rect', { x: -22, y: -14, width: 44, height: 28, rx: 3, fill: '#1a1f2e', stroke: c, 'stroke-width': 2.5 }),
+      makeText('■', 0, 5, { fill: c, 'font-size': '13' }),
+    ];
+  },
+  whitebox(el) {
+    const c = COLORS.whitebox;
+    return [
+      makePath('M -44,0 L -22,0', { stroke: c, 'stroke-width': 2 }),
+      makePath('M 22,0 L 44,0',   { stroke: c, 'stroke-width': 2 }),
+      svgEl('rect', { x: -22, y: -14, width: 44, height: 28, rx: 3, fill: c + '18', stroke: c, 'stroke-width': 2.5, 'stroke-dasharray': '5,3' }),
+      makeText('□', 0, 5, { fill: c, 'font-size': '13' }),
+    ];
+  },
+  measurement(el) {
+    const c = COLORS.measurement;
+    return [
+      makePath('M -44,0 L -16,0', { stroke: c, 'stroke-width': 2 }),
+      makePath('M 16,0 L 44,0',   { stroke: c, 'stroke-width': 2 }),
+      svgEl('circle', { cx: 0, cy: 0, r: 16, fill: '#1a1f2e', stroke: c, 'stroke-width': 2.5 }),
+      makePath('M 0,0 L -8,-10', { stroke: c, 'stroke-width': 2, 'stroke-linecap': 'round' }),
+      makeText('M', 0, 5, { fill: c, 'font-size': '9', 'font-weight': 'bold' }),
+    ];
+  },
+  switch(el) {
+    const c = COLORS.switch;
+    return [
+      makePath('M -44,0 L -16,0', { stroke: c, 'stroke-width': 2 }),
+      makePath('M -16,0 L 10,-16', { stroke: c, 'stroke-width': 2.5, 'stroke-linecap': 'round' }),
+      svgEl('circle', { cx: -16, cy: 0, r: 3, fill: c }),
+      svgEl('circle', { cx: 16,  cy: 0, r: 3, fill: c }),
+      makePath('M 16,0 L 44,0', { stroke: c, 'stroke-width': 2 }),
+    ];
+  },
+  branch(el) {
+    return [svgEl('circle', { cx: 0, cy: 0, r: 5, fill: COLORS.branch, stroke: COLORS.wire, 'stroke-width': 1 })];
+  },
+  ground(el) {
+    const c = COLORS.ground;
+    return [
+      makePath('M -44,0 L 0,0',   { stroke: c, 'stroke-width': 2 }),
+      makePath('M -16,8 L 16,8',  { stroke: c, 'stroke-width': 3 }),
+      makePath('M -10,16 L 10,16', { stroke: c, 'stroke-width': 2.5 }),
+      makePath('M -5,24 L 5,24',  { stroke: c, 'stroke-width': 2 }),
+    ];
+  },
+};
+
+function computeLayout(data) {
+  return data.map((el, i) => ({ el, cx: MARGIN_L + i * STEP + CW / 2, cy: RAIL_Y }));
+}
+
+function render() {
+  const layout = computeLayout(CIRCUIT_DATA);
+  const svgW = MARGIN_L + CIRCUIT_DATA.length * STEP + MARGIN_R;
+
+  const svg = svgEl('svg', { id: 'circuit-svg', width: svgW, height: SVG_H, style: 'display:block;' });
+
+  const defs = svgEl('defs');
+  const grid = svgEl('pattern', { id: 'grid', width: 20, height: 20, patternUnits: 'userSpaceOnUse' });
+  grid.appendChild(makePath('M 20,0 L 0,0 0,20', { stroke: '#1a1f2e', 'stroke-width': 0.5 }));
+  defs.appendChild(grid);
+  svg.appendChild(defs);
+  svg.appendChild(svgEl('rect', { width: svgW, height: SVG_H, fill: 'url(#grid)' }));
+
+  const railX1 = MARGIN_L, railX2 = MARGIN_L + CIRCUIT_DATA.length * STEP;
+  svg.appendChild(svgEl('line', {
+    id: 'main-rail', x1: railX1, y1: RAIL_Y, x2: railX2, y2: RAIL_Y,
+    stroke: COLORS.wire, 'stroke-width': 2
+  }));
+
+  const branchIdx = CIRCUIT_DATA.findIndex(e => e.type === 'branch');
+  if (branchIdx >= 0) {
+    const bx = layout[branchIdx].cx, by = RAIL_Y, dropY = RAIL_Y + BRANCH_DROP;
+    const rejLayout = REJECTED_ELEMENTS.map((el, i) => ({
+      el, cx: bx + (i + 1) * STEP, cy: dropY
+    }));
+    const lastCx = rejLayout[rejLayout.length - 1].cx;
+    svg.appendChild(makePath(
+      `M ${bx},${by} C ${bx},${dropY} ${bx + 30},${dropY} ${bx + STEP / 2},${dropY} L ${lastCx + CW / 2},${dropY}`,
+      { stroke: '#ef4444', 'stroke-width': 1.8, 'stroke-dasharray': '6,3' }
+    ));
+    svg.appendChild(makeText('Secondary path', bx + STEP * 0.7, dropY - 14, {
+      fill: '#ef4444', 'font-size': '10', 'font-weight': '600'
+    }));
+    for (const { el, cx, cy } of rejLayout) svg.appendChild(renderComponent(el, cx, cy));
+  }
+
+  for (const { el, cx, cy } of layout) svg.appendChild(renderComponent(el, cx, cy));
+
+  // Flow animation
+  const railPath = svgEl('path', {
+    id: 'flow-rail-path', d: `M ${railX1},${RAIL_Y} L ${railX2},${RAIL_Y}`, fill: 'none', stroke: 'none'
+  });
+  svg.appendChild(railPath);
+  const animGroup = svgEl('g', { id: 'flow-anim', visibility: 'hidden' });
+  for (let i = 0; i < 4; i++) {
+    const dot = svgEl('circle', { r: 5, fill: '#22d3ee', style: 'filter:drop-shadow(0 0 4px #22d3ee);opacity:0.85;' });
+    const anim = svgEl('animateMotion', { dur: '8s', repeatCount: 'indefinite', begin: `${2 * i}s` });
+    const mpath = svgEl('mpath', {});
+    mpath.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#flow-rail-path');
+    anim.appendChild(mpath);
+    dot.appendChild(anim);
+    animGroup.appendChild(dot);
+  }
+  svg.appendChild(animGroup);
+
+  document.getElementById('canvas').appendChild(svg);
+  buildLegend();
+  wireControls(svg, layout);
+  wireTooltips(svg);
+}
+
+function renderComponent(el, cx, cy) {
+  const g = svgEl('g', { class: 'component', 'data-id': el.id, transform: `translate(${cx}, ${cy})` });
+  const symG = svgEl('g', { class: 'sym' });
+  const renderer = RENDERERS[el.type];
+  if (renderer) for (const shape of renderer(el)) symG.appendChild(shape);
+  g.appendChild(symG);
+
+  const labelEl = makeText(el.label, 0, 46, { fill: '#94a3b8', 'font-size': '9.5', style: 'font-family:inherit;font-weight:500;' });
+  if (el.label.length > 16) {
+    const words = el.label.split(' ');
+    const mid = Math.ceil(words.length / 2);
+    labelEl.textContent = '';
+    const t1 = svgEl('tspan', { x: 0, dy: 0 }); t1.textContent = words.slice(0, mid).join(' ');
+    const t2 = svgEl('tspan', { x: 0, dy: '1.2em' }); t2.textContent = words.slice(mid).join(' ');
+    labelEl.appendChild(t1); labelEl.appendChild(t2);
+  }
+  g.appendChild(labelEl);
+
+  if (el.annotation) {
+    const ann = svgEl('g', {});
+    ann.appendChild(svgEl('rect', {
+      x: -el.annotation.length * 3.2, y: -44, width: el.annotation.length * 6.4, height: 14,
+      rx: 3, fill: '#1e2535', stroke: '#334155', 'stroke-width': 1
+    }));
+    ann.appendChild(makeText(el.annotation, 0, -33, { fill: '#64748b', 'font-size': '8.5' }));
+    g.appendChild(ann);
+  }
+  g.appendChild(svgEl('rect', { x: -CW / 2, y: -30, width: CW, height: 80, fill: 'transparent', class: 'hit' }));
+  return g;
+}
+
+const ALL_DATA = [...CIRCUIT_DATA, ...REJECTED_ELEMENTS];
+const TYPE_LABELS = {
+  source: 'Voltage Source', resistor: 'Resistor', impedance: 'Impedance',
+  capacitor: 'Capacitor', amplifier: 'Amplifier', blackbox: 'Black Box',
+  whitebox: 'White Box', measurement: 'Measurement', switch: 'Switch',
+  branch: 'Branch', ground: 'Ground'
+};
+
+function wireTooltips(svg) {
+  const tip = document.getElementById('tooltip');
+  svg.addEventListener('mousemove', e => {
+    const comp = e.target.closest('.component');
+    if (!comp) { tip.classList.remove('visible'); return; }
+    const el = ALL_DATA.find(d => d.id === comp.dataset.id);
+    if (!el) return;
+    const c = typeColor(el);
+    const chips = [];
+    if (el.voltage)    chips.push(`<span class="tt-chip">⚡ Voltage: ${'⚡'.repeat(el.voltage)}</span>`);
+    if (el.resistance) chips.push(`<span class="tt-chip" style="color:${COLORS[el.resistance]}">Resistance: ${el.resistance.toUpperCase()}</span>`);
+    if (el.annotation) chips.push(`<span class="tt-chip">${el.annotation}</span>`);
+    if (el.metric)     chips.push(`<span class="tt-chip" style="color:${COLORS.measurement}">${el.metric.label}: ${el.metric.value}${el.metric.unit}</span>`);
+    tip.innerHTML = `
+      <div class="tt-header">
+        <span class="tt-badge" style="background:${c}22;color:${c};border:1px solid ${c}44">${TYPE_LABELS[el.type]||el.type}</span>
+        <span class="tt-label">${el.label}</span>
+      </div>
+      <div class="tt-desc">${el.description}</div>
+      <div class="tt-meta">${chips.join('')}</div>`;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let tx = e.clientX + 18, ty = e.clientY - 10;
+    if (tx + 280 > vw) tx = e.clientX - 288;
+    if (ty + 130 > vh) ty = e.clientY - 130;
+    tip.style.left = tx + 'px'; tip.style.top = ty + 'px';
+    tip.classList.add('visible');
+    document.querySelectorAll('.component.hovered').forEach(c => c.classList.remove('hovered'));
+    comp.classList.add('hovered');
+  });
+  svg.addEventListener('mouseleave', () => {
+    tip.classList.remove('visible');
+    document.querySelectorAll('.component.hovered').forEach(c => c.classList.remove('hovered'));
+  });
+}
+
+function wireControls(svg, layout) {
+  document.getElementById('btn-play').addEventListener('click', () => {
+    CIRCUIT_DATA.forEach((el, i) => {
+      setTimeout(() => {
+        const g = svg.querySelector(`[data-id="${el.id}"]`);
+        if (!g) return;
+        g.classList.add('pulsing');
+        setTimeout(() => g.classList.remove('pulsing'), 450);
+      }, i * 420);
+    });
+  });
+  const flowBtn = document.getElementById('btn-flow');
+  let flowOn = false;
+  flowBtn.addEventListener('click', () => {
+    flowOn = !flowOn;
+    const ag = svg.querySelector('#flow-anim');
+    if (ag) ag.setAttribute('visibility', flowOn ? 'visible' : 'hidden');
+    flowBtn.textContent = flowOn ? '⏸ Current flow' : '▶ Current flow';
+    flowBtn.classList.toggle('active', flowOn);
+  });
+  const zoomInput = document.getElementById('zoom');
+  const zoomLabel = document.getElementById('zoom-label');
+  const canvas    = document.getElementById('canvas');
+  zoomInput.addEventListener('input', () => {
+    const v = parseFloat(zoomInput.value);
+    canvas.style.transform = `scale(${v})`;
+    zoomLabel.textContent = Math.round(v * 100) + '%';
+  });
+  canvas.style.transform = `scale(${parseFloat(zoomInput.value)})`;
+}
+
+function buildLegend() {
+  const grid = document.getElementById('legend-grid');
+  for (const item of LEGEND_ITEMS) {
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+    const iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    iconSvg.setAttribute('width', 54); iconSvg.setAttribute('height', 28);
+    iconSvg.setAttribute('viewBox', '-27 -14 54 28');
+    iconSvg.style.flexShrink = '0';
+    iconSvg.appendChild(makePath('M -27,0 L 27,0', { stroke: COLORS.wire, 'stroke-width': 1.5 }));
+    const mockEl = { type: item.type, resistance: 'high', voltage: 2, annotation: null, metric: null };
+    const renderer = RENDERERS[item.type];
+    if (renderer) {
+      const sg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      sg.setAttribute('transform', 'scale(0.55)');
+      for (const shape of renderer(mockEl)) sg.appendChild(shape);
+      iconSvg.appendChild(sg);
+    }
+    const textDiv = document.createElement('div');
+    textDiv.innerHTML = `
+      <div class="legend-term" style="color:${item.color}">${item.term}</div>
+      <div class="legend-meaning">${item.meaning}</div>`;
+    row.appendChild(iconSvg); row.appendChild(textDiv);
+    grid.appendChild(row);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', render);
+</script>
+</body>
+</html>
