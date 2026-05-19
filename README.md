@@ -36,8 +36,11 @@ Product Circuit uses electronics metaphors — resistors, capacitors, switches, 
 
 ## Figma source file
 
-The print layouts (A0/A1 PDFs) were designed in Figma. To get your own editable copy:
-> *Add your Figma file link here once you have a shareable URL*
+The print layouts (A0/A1 PDFs) were designed in Figma. View and duplicate the source file:
+
+**[Product Circuit Diagram — Figma](https://www.figma.com/design/gOWH3YTXMF8FZ5lHNcLPu1/Product-Circuit-Diagram)**
+
+Use File → Duplicate to get your own editable copy in Figma.
 
 ## License
 
