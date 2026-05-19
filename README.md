@@ -1,5 +1,7 @@
 # Product Circuit
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20299675.svg)](https://doi.org/10.5281/zenodo.20299675)
+
 **A framework for mapping any business or product process as an electrical circuit.**
 
 Product Circuit uses electronics metaphors — resistors, capacitors, switches, transistors — to make process friction visible, communicable, and actionable. Each step in a process maps to a circuit component that captures not just *what* happens, but *why it behaves the way it does*.
@@ -55,5 +57,5 @@ If you use this in your work, please cite:
 ```
 Product Circuit Framework
 geekychakrabarti (2026)
-https://github.com/geekychakrabarti/product-circuit
+https://doi.org/10.5281/zenodo.20299675
 ```
